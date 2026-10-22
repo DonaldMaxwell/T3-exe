@@ -52,14 +52,31 @@ jobs:
           EXE_TOKEN: ${{ inputs.exe_token }}
           VM_NAME: ${{ inputs.vm_name }}
         run: |
-          echo "⏳ Waiting for T3 Code service to start..."
-          sleep 15
+          echo "⏳ Waiting for VM setup and T3 Code to boot..."
+          
+          PAIR_TOKEN=""
+          # Poll every 10 seconds for up to 3 minutes
+          for i in {1..18}; do
+            RESPONSE=$(curl -s -X POST https://exe.dev/exec \
+              -H "Authorization: Bearer ${EXE_TOKEN}" \
+              -H "Content-Type: text/plain" \
+              -d "exec vm:${VM_NAME} \"t3 auth pairing create --ttl 7d --json\"" 2>/dev/null || true)
+            
+            PAIR_TOKEN=$(echo "$RESPONSE" | jq -r '.credential // .token // empty' 2>/dev/null || true)
+            
+            if [ -n "$PAIR_TOKEN" ]; then
+              echo "✅ T3 Code is running and pairing token acquired!"
+              break
+            fi
+            
+            echo "Still installing packages on VM... ($((i * 10))s elapsed)"
+            sleep 10
+          done
 
-          # Mint a 7-day pairing token directly from the VM
-          PAIR_TOKEN=$(curl -s -X POST https://exe.dev/exec \
-            -H "Authorization: Bearer ${EXE_TOKEN}" \
-            -H "Content-Type: text/plain" \
-            -d "t3 auth pairing create --ttl 7d --json" | jq -r '.credential // .token // empty')
+          if [ -z "$PAIR_TOKEN" ]; then
+            echo "❌ Setup timed out. Please check VM logs."
+            exit 1
+          fi
 
           PAIR_URL="https://${VM_NAME}.exe.xyz/pair#token=${PAIR_TOKEN}"
 
@@ -70,4 +87,4 @@ jobs:
 
           # Write clickable 1-click link to GitHub Summary
           echo "### 🚀 Sandbox Ready!" >> $GITHUB_STEP_SUMMARY
-          echo "[👉 Click here to Open T3 Code Workspace](${PAIR_URL})" >> $GITHUB_STEP_SUMMARY
+          echo "[👉 Click here to Open Pre-Paired T3 Code Workspace](${PAIR_URL})" >> $GITHUB_STEP_SUMMARY
