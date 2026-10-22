@@ -1,0 +1,49 @@
+name: Deploy T3 Sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      exe_token:
+        description: 'Your exe.dev API Key'
+        required: true
+        type: string
+      vm_name:
+        description: 'VM Name'
+        required: false
+        default: 't3-sandbox'
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Spin up VM on exe.dev
+        env:
+          EXE_TOKEN: ${{ inputs.exe_token }}
+          VM_NAME: ${{ inputs.vm_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SETUP_URL="https://raw.githubusercontent.com/${REPO}/main/setup.sh"
+
+          echo "🚀 Provisioning ${VM_NAME} on exe.dev..."
+          curl -s -f -X POST https://exe.dev/exec \
+            -H "Authorization: Bearer ${EXE_TOKEN}" \
+            -H "Content-Type: text/plain" \
+            -d "new --name=${VM_NAME} --setup-script=\"curl -fsSL ${SETUP_URL} | bash\" --json"
+
+          echo "🔗 Attaching tailscale-wif integration..."
+          curl -s -f -X POST https://exe.dev/exec \
+            -H "Authorization: Bearer ${EXE_TOKEN}" \
+            -H "Content-Type: text/plain" \
+            -d "integrations attach tailscale-wif vm:${VM_NAME} --json" || true
+
+          echo "================================================="
+          echo "✅ Sandbox Deployment Initiated!"
+          echo "Access your environment at: https://${VM_NAME}.exe.xyz"
+          echo "================================================="
+          
+          # Write summary to GitHub UI
+          echo "### 🚀 Sandbox Created!" >> $GITHUB_STEP_SUMMARY
+          echo "- **VM Name:** \`${VM_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workspace URL:** [https://${VM_NAME}.exe.xyz](https://${VM_NAME}.exe.xyz)" >> $GITHUB_STEP_SUMMARY
