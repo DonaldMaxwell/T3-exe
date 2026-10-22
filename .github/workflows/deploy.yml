@@ -47,3 +47,27 @@ jobs:
           echo "### 🚀 Sandbox Created!" >> $GITHUB_STEP_SUMMARY
           echo "- **VM Name:** \`${VM_NAME}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Workspace URL:** [https://${VM_NAME}.exe.xyz](https://${VM_NAME}.exe.xyz)" >> $GITHUB_STEP_SUMMARY
+      - name: Fetch Pairing Link & Output Summary
+        env:
+          EXE_TOKEN: ${{ inputs.exe_token }}
+          VM_NAME: ${{ inputs.vm_name }}
+        run: |
+          echo "⏳ Waiting for T3 Code service to start..."
+          sleep 15
+
+          # Mint a 7-day pairing token directly from the VM
+          PAIR_TOKEN=$(curl -s -X POST https://exe.dev/exec \
+            -H "Authorization: Bearer ${EXE_TOKEN}" \
+            -H "Content-Type: text/plain" \
+            -d "t3 auth pairing create --ttl 7d --json" | jq -r '.credential // .token // empty')
+
+          PAIR_URL="https://${VM_NAME}.exe.xyz/pair#token=${PAIR_TOKEN}"
+
+          echo "================================================="
+          echo "🚀 Workspace Ready!"
+          echo "Direct Launch URL: ${PAIR_URL}"
+          echo "================================================="
+
+          # Write clickable 1-click link to GitHub Summary
+          echo "### 🚀 Sandbox Ready!" >> $GITHUB_STEP_SUMMARY
+          echo "[👉 Click here to Open T3 Code Workspace](${PAIR_URL})" >> $GITHUB_STEP_SUMMARY
