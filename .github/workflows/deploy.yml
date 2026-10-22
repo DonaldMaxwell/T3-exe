@@ -55,12 +55,12 @@ jobs:
           echo "⏳ Waiting for VM setup and T3 Code to boot..."
           
           PAIR_TOKEN=""
-          # Poll every 10 seconds for up to 3 minutes
-          for i in {1..18}; do
+          for i in {1..20}; do
+            # Use official exe.dev syntax: ssh <vm_name> <command>
             RESPONSE=$(curl -s -X POST https://exe.dev/exec \
               -H "Authorization: Bearer ${EXE_TOKEN}" \
               -H "Content-Type: text/plain" \
-              -d "exec vm:${VM_NAME} \"t3 auth pairing create --ttl 7d --json\"" 2>/dev/null || true)
+              -d "ssh ${VM_NAME} t3 auth pairing create --ttl 7d --json")
             
             PAIR_TOKEN=$(echo "$RESPONSE" | jq -r '.credential // .token // empty' 2>/dev/null || true)
             
@@ -69,12 +69,13 @@ jobs:
               break
             fi
             
-            echo "Still installing packages on VM... ($((i * 10))s elapsed)"
+            echo "Waiting for setup to complete... ($((i * 10))s elapsed)"
             sleep 10
           done
 
           if [ -z "$PAIR_TOKEN" ]; then
-            echo "❌ Setup timed out. Please check VM logs."
+            echo "❌ Setup timed out. Last API response was:"
+            echo "$RESPONSE"
             exit 1
           fi
 
@@ -85,6 +86,5 @@ jobs:
           echo "Direct Launch URL: ${PAIR_URL}"
           echo "================================================="
 
-          # Write clickable 1-click link to GitHub Summary
           echo "### 🚀 Sandbox Ready!" >> $GITHUB_STEP_SUMMARY
           echo "[👉 Click here to Open Pre-Paired T3 Code Workspace](${PAIR_URL})" >> $GITHUB_STEP_SUMMARY
