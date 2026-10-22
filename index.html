@@ -38,7 +38,7 @@
       status.style.display = 'block';
       status.innerText = "⏳ Calling exe.dev to spin up VM...";
 
-      const setupUrl = "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_REPO/main/setup.sh";
+      const setupUrl = "https://raw.githubusercontent.com/DonaldMaxwell/T3-exe/main/setup.sh";
       // Command executed over exe.dev HTTPS API
       const cmd = `new --name=${vmName} --setup-script="curl -fsSL ${setupUrl} | bash" --json`;
 
