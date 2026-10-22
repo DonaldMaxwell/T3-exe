@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deploy T3 Sandbox</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 500px; margin: 80px auto; padding: 20px; line-height: 1.5; }
+    input, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; font-size: 16px; border-radius: 6px; }
+    input { border: 1px solid #ccc; font-family: monospace; }
+    button { background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+    button:disabled { background: #888; }
+    #status { margin-top: 15px; font-family: monospace; white-space: pre-wrap; background: #f4f4f4; padding: 10px; border-radius: 4px; display: none; }
+  </style>
+</head>
+<body>
+  <h2>🚀 Launch T3 Code Sandbox</h2>
+  <p>Deploys an ephemeral, persistent VM on <code>exe.dev</code> with T3 Code pre-installed.</p>
+
+  <label for="token"><b>exe.dev API Key:</b></label>
+  <input type="password" id="token" placeholder="exe0.xxx or exe1.xxx" required />
+
+  <label for="vmName"><b>VM Name:</b></label>
+  <input type="text" id="vmName" value="t3-agent-box" />
+
+  <button id="deployBtn" onclick="deployVM()">Deploy Sandbox</button>
+  <div id="status"></div>
+
+  <script>
+    async function deployVM() {
+      const token = document.getElementById('token').value.trim();
+      const vmName = document.getElementById('vmName').value.trim() || `t3-box-${Date.now().toString().slice(-4)}`;
+      const status = document.getElementById('status');
+      const btn = document.getElementById('deployBtn');
+
+      if (!token) return alert('Please enter your exe.dev token');
+
+      btn.disabled = true;
+      status.style.display = 'block';
+      status.innerText = "⏳ Calling exe.dev to spin up VM...";
+
+      const setupUrl = "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_REPO/main/setup.sh";
+      // Command executed over exe.dev HTTPS API
+      const cmd = `new --name=${vmName} --setup-script="curl -fsSL ${setupUrl} | bash" --json`;
+
+      try {
+        const res = await fetch("https://exe.dev/exec", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "text/plain"
+          },
+          body: cmd
+        });
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        status.innerHTML = `✅ <b>VM Created!</b><br>` +
+          `Host: <code>${data.https_url || vmName + '.exe.xyz'}</code><br><br>` +
+          `👉 <a href="${data.https_url || 'https://' + vmName + '.exe.xyz'}" target="_blank">Open T3 Code Workspace</a>`;
+      } catch (err) {
+        status.innerText = "❌ Error: " + err.message;
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
