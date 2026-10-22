@@ -40,7 +40,7 @@ cat << 'EOF' > "$CONFIG_DIR/settings.json"
   }
 }
 EOF
-chown -R exedev:exedev "$HOME/.config"
+sudo chown -R exedev:exedev "$CONFIG_DIR" 2>/dev/null || true
 
 echo "=== [4/4] Setting up T3 Code Service & Port 8000 Ingress ==="
 # exe.dev automatically exposes port 8000 at https://<vm-name>.exe.xyz.
